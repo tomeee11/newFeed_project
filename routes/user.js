@@ -59,6 +59,7 @@ router.post('/sginup', async (req, res) => {
   const hash = await bcrypt.hash(password, salt); //bcrypt.hash에 인자로 암호화해줄 password와 salt를 인자로 넣어주면 끝이다.
   //-------------------------------------------------인증키--------------------------------------------------------------------
   const { authorization } = req.cookies;
+
   const [tokenType, authtoken] = authorization.split(' '); //토큰 타입은 bearer ,authtoken = authNum, secret_key
   const decodedToken = jwt.verify(authtoken, 'secret_key'); //jswt token 검증
   console.log(decodedToken.authNum); //이메일에 있는 authNum과 token값이 같다면 회원가입 진행 ---(입력칸이 필요함..)
@@ -131,7 +132,7 @@ router.post('/sginin', async (req, res) => {
         },
         'customized_secret_key'
       );
-      res.cookie('authorization', `Bearer ${token}`);
+      // res.cookie('authorization', `Bearer ${token}`);
       return res.status(200).json({ token: token }); //
     } else {
       return res
