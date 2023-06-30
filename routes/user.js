@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const router = express.Router();
+const authmiddleware = require('../middlewares/middleware.js');
 require('dotenv').config();
 
 //import * as tweetController from '../controller/tweet.js';
@@ -63,9 +64,14 @@ router.post('/sginup', async (req, res) => {
   const salt = await bcrypt.genSalt(10); // 값이 높을 수록 암호화 연산이 증가. 하지만 암호화하는데 속도가 느려진다.
   const hash = await bcrypt.hash(password, salt); //bcrypt.hash에 인자로 암호화해줄 password와 salt를 인자로 넣어주면 끝이다.
   //-------------------------------------------------인증키--------------------------------------------------------------------
+<<<<<<< HEAD
   const { authorization } = req.cookies;
 
   const [tokenType, authtoken] = authorization.split(' '); //토큰 타입은 bearer ,authtoken = authNum, secret_key
+=======
+  const { emailToken } = req.cookies;
+  const [tokenType, authtoken] = emailToken.split(' '); //토큰 타입은 bearer ,authtoken = authNum, secret_key
+>>>>>>> main
   const decodedToken = jwt.verify(authtoken, 'secret_key'); //jswt token 검증
   console.log(decodedToken.authNum); //이메일에 있는 authNum과 token값이 같다면 회원가입 진행 ---(입력칸이 필요함..)
 
@@ -155,4 +161,57 @@ router.delete('/a', async (req, res) => {
   await User.destroy({ where: { email } });
   return res.json({ message: '제거 완료.' });
 });
+// 프로필 조회
+router.get('/profile', authmiddleware, async (req, res) => {
+  const id = req.userId;
+  const userInfo = await User.findOne({ where: id });
+  res.json({ userInfo });
+  // console.log(id);
+});
+
+// 프로필 수정
+router.put('/profile', authmiddleware, async (req, res) => {
+  try {
+    const id = req.userId;
+    const { nickname, content } = req.body;
+
+    if (nickname && content) {
+      // 닉네임과 콘텐트 모두 있는 경우에는 둘 다 수정
+      await User.update({ nickname, content }, { where: { id } });
+      console.log('nid>', nickname);
+      return res.status(200).json({ message: '프로필이 수정되었습니다.' });
+    } else if (nickname) {
+      // 닉네임만 있는 경우에는 닉네임만 수정
+      await User.update({ nickname }, { where: { id } });
+      return res
+        .status(200)
+        .json({ message: '프로필의 닉네임이 수정되었습니다.' });
+    } else if (content) {
+      // 콘텐트만 있는 경우에는 콘텐트만 수정
+      await User.update({ content }, { where: { id } });
+      return res
+        .status(200)
+        .json({ message: '프로필의 콘텐트가 수정되었습니다.' });
+    } else {
+      return res.status(400).json({ message: '수정할 내용을 입력해주세요.' });
+    }
+  } catch (error) {
+    console.error('에러 발생:', error);
+    return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+router.get('/me', authmiddleware, (req, res, next) => {
+  try {
+    if (!req.userId) {
+      return res
+        .status(401)
+        .json({ errorMessage: '로그인된 사용자가 아닙니다' });
+    }
+    return res.status(200).json({ userId: req.userId });
+  } catch (error) {
+    return res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 module.exports = router;
